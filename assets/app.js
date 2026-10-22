@@ -37,13 +37,19 @@
     { t: 'Chánh điện', f: 18, s: 8 },
     { t: 'Người trẻ đến chùa', f: 20, s: 9 },
     { t: 'Cẩm nang đi chùa', f: 22 },
-    { t: 'Nhóm thực hiện', f: 24 },
   ];
-  // Folio printed on page index i (0-based). Cover and TOC are uncounted.
-  const folioOf = (i) => (i >= 2 && i <= N - 2 ? i - 1 : null);
-  const indexOfFolio = (f) => f + 1;
+  // Page index i (0-based): 0 cover, 1–2 team spread, 3 TOC (all uncounted),
+  // 4 the photo page that counts as folio 1, then folios 02–23, last the back cover.
+  const TEAM = [1, 2];
+  const TOC_PAGE = 3;
+  const folioOf = (i) => (i >= 4 && i <= N - 2 ? i - 3 : null);
+  const indexOfFolio = (f) => f + 3;
   const pageName = (i) =>
-    i === 0 ? 'bìa' : i === 1 ? 'mục lục' : i === N - 1 ? 'bìa sau' : `tr. ${pad2(folioOf(i))}`;
+    i === 0 ? 'bìa'
+      : TEAM.includes(i) ? 'nhóm thực hiện'
+      : i === TOC_PAGE ? 'mục lục'
+      : i === N - 1 ? 'bìa sau'
+      : `tr. ${pad2(folioOf(i))}`;
   const chapterOf = (i) => {
     const f = folioOf(i);
     if (f === null) return null;
@@ -53,18 +59,25 @@
   };
   const altOf = (i) => {
     if (i === 0) return 'Bìa trước tạp chí Nam Thiên Nhất Trụ, số 01';
-    if (i === 1) return 'Trang mục lục: chín chặng dạo quanh chùa';
+    if (i === 1) return 'Ảnh nhóm thực hiện tại chùa Nam Thiên Nhất Trụ';
+    if (i === 2) return 'Trang nhóm thực hiện';
+    if (i === TOC_PAGE) return 'Trang mục lục: chín chặng dạo quanh chùa';
     if (i === N - 1) return 'Bìa sau tạp chí';
     const c = chapterOf(i);
     return `Trang ${pad2(folioOf(i))}${c ? ', ' + c.t : ''}`;
   };
   const slugOf = (i) =>
-    i === 1 ? 'muc-luc' : i === N - 1 ? 'bia-sau' : i === 0 ? '' : `trang-${pad2(folioOf(i))}`;
+    i === 0 ? ''
+      : TEAM.includes(i) ? 'nhom-thuc-hien'
+      : i === TOC_PAGE ? 'muc-luc'
+      : i === N - 1 ? 'bia-sau'
+      : `trang-${pad2(folioOf(i))}`;
   const indexOfSlug = (h) => {
-    if (h === 'muc-luc') return 1;
+    if (h === 'nhom-thuc-hien') return TEAM[0];
+    if (h === 'muc-luc') return TOC_PAGE;
     if (h === 'bia-sau') return N - 1;
     const m = /^trang-(\d{1,2})$/.exec(h);
-    if (m) return clamp(indexOfFolio(parseInt(m[1], 10)), 2, N - 2);
+    if (m) return clamp(indexOfFolio(parseInt(m[1], 10)), 4, N - 2);
     return 0;
   };
 
@@ -260,7 +273,7 @@
   }
   function spreadName(pages) {
     if (pages.length === 1) return pageName(pages[0]);
-    if (pages[0] === 1) return 'mục lục';
+    if (folioOf(pages[0]) === null) return pageName(pages[0]);
     return `tr. ${pad2(folioOf(pages[0]))}–${pad2(folioOf(pages[1]))}`;
   }
 
